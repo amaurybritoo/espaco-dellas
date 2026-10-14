@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#fff9f3">
+  <title>Espaço Dellas • Central de Links</title>
+  <link rel="icon" href="../assets/logo.svg">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <div class="admin-bg"></div><div class="admin-glow admin-glow-a"></div><div class="admin-glow admin-glow-b"></div>
+  <main class="shell">
+    <section id="login" class="login-card">
+      <div class="login-logo"><img src="../assets/logo.svg" alt="Espaço Dellas"></div>
+      <span class="eyebrow">ESPAÇO DELLAS · LINKS</span>
+      <h1>Área exclusiva</h1>
+      <p class="login-subtitle">Acesse sua central para atualizar a página de links do Espaço Dellas.</p>
+      <form id="loginForm" class="login-form">
+        <label>E-mail<input id="email" type="email" placeholder="seu@email.com" autocomplete="username" required></label>
+        <label>Senha<div class="password-wrap"><input id="password" type="password" placeholder="Sua senha" autocomplete="current-password" required><button id="togglePassword" type="button" aria-label="Mostrar senha">Mostrar</button></div></label>
+        <button class="primary login-button" type="submit"><span>Entrar na central</span><b>→</b></button>
+        <div id="loginError" role="alert"></div>
+      </form>
+      <div class="login-foot"><span>Área restrita</span><i>•</i><span>Acesso protegido</span></div>
+      <p class="config-note">Se o acesso falhar, confira se a URL e a chave pública do Supabase pertencem ao mesmo projeto em <strong>Settings → API Keys</strong>.</p>
+    </section>
+
+    <section id="app" hidden>
+      <header class="app-head">
+        <div class="head-brand"><span class="eyebrow">ESPAÇO DELLAS · LINKS</span><h1>Central de links</h1><p id="currentLabel">Edite sua página em poucos passos.</p></div>
+        <div class="head-actions"><a href="../" target="_blank" rel="noopener noreferrer">Ver página ↗</a><button id="logout" class="ghost" type="button">Sair</button></div>
+      </header>
+      <div id="toast" role="status"></div>
+
+      <div class="dashboard-grid">
+        <section class="panel">
+          <div class="panel-title-row"><div><span class="eyebrow">IDENTIDADE</span><h2>Informações da loja</h2><p class="hint">O essencial da sua página: nome, texto, localização, logo e fundo.</p></div></div>
+          <form id="settingsForm" class="form-grid">
+            <label>Nome<input id="name" required></label>
+            <label class="wide bio-setting"><span>Texto da página pública</span><textarea id="bio" name="bio" rows="3" placeholder="Seu estilo, do seu jeito. Entregamos em toda Manaus ✨">Seu estilo, do seu jeito. Entregamos em toda Manaus ✨</textarea><small>Este texto aparece logo abaixo do nome na página inicial.</small></label>
+            <label class="wide">Endereço<input id="address"></label>
+            <label class="wide">Localização para o mapa<input id="location_query"></label>
+            <label>Logo<input id="logoFile" type="file" accept="image/*"><small>Envie apenas se quiser trocar.</small><button id="resetLogo" class="mini-reset" type="button">↺ Voltar para logo padrão</button></label>
+            <label>Fundo<input id="backgroundFile" type="file" accept="image/*"><small>Imagem vertical ou horizontal.</small><button id="resetBackground" class="mini-reset" type="button">↺ Voltar para imagem padrão</button></label>
+            <div class="wide form-actions"><button class="primary" type="submit">Salvar alterações <b>→</b></button></div>
+          </form>
+        </section>
+
+        <section class="panel links-panel">
+          <div class="panel-title-row links-heading"><div><span class="eyebrow">LINKS</span><h2>Cards da página</h2><p class="hint">Adicione, edite, ative, exclua ou mude a ordem dos cards.</p></div><button id="addLink" class="secondary" type="button">+ Novo card</button></div>
+          <div class="link-help"><span>Use as setas para ordenar</span><i>•</i><span>Desative um card sem excluí-lo</span></div>
+          <div id="linksList"></div>
+        </section>
+      </div>
+      <p class="security-note"><span>🔒</span> Esta central exige login. O visitante só vê os links que estiverem marcados como <strong>Ativo · Sim</strong>.</p>
+    </section>
+  </main>
+  <div id="deleteConfirm" class="brand-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" aria-describedby="deleteModalText">
+    <div class="brand-modal-card">
+      <button id="deleteModalClose" class="brand-modal-close" type="button" aria-label="Fechar">×</button>
+      <span class="brand-modal-mark" aria-hidden="true">✦</span>
+      <span class="brand-modal-eyebrow">ESPAÇO DELLAS</span>
+      <h2 id="deleteModalTitle">Excluir este card?</h2>
+      <p id="deleteModalText">Tem certeza que deseja excluir <strong id="deleteItemName">este item</strong>? Essa ação não pode ser desfeita.</p>
+      <div class="brand-modal-actions"><button id="cancelDelete" class="secondary" type="button">Não, manter</button><button id="confirmDelete" class="danger" type="button">Sim, excluir</button></div>
+    </div>
+  </div>
+  <script src="../js/admin.js"></script>
+</body>
+</html>
