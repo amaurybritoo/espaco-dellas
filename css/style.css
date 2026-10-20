@@ -23,11 +23,11 @@ body:not(.catalog-page){background-color:var(--paper);background-image:linear-gr
 @media(max-width:520px){.whatsapp-float{width:56px;height:56px;min-width:56px}}
 @media(prefers-reduced-motion:reduce){.whatsapp-float{animation:none;transition:none}}
 /* Espaço visual entre as repetições do ticker. */
-.ticker-segment:after{content:"✳";display:inline-block;margin:0 27px;color:#f4d9a8}
+.ticker-segment:after{content:"✳︎";display:inline-block;margin:0 27px;color:#f4d9a8}
 
 
 /* Separador entre blocos repetidos no ticker. */
-.ticker-segment:after{content:"✳";display:inline-block;margin:0 27px;color:#f4d9a8}
+.ticker-segment:after{content:"✳︎";display:inline-block;margin:0 27px;color:#f4d9a8}
 /* Rodapé simples e sem caixa na página de links. */
 body:not(.catalog-page) .site-footer{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:18px 4px 0!important}
 body:not(.catalog-page) .site-footer:before{display:none}
@@ -37,3 +37,7 @@ body:not(.catalog-page) .site-footer .footer-bottom{border-top:0!important}
 /* Crédito profissional com mais contraste, sem dominar o rodapé. */
 .footer-bottom small:last-child{font-size:9px;font-weight:600;letter-spacing:.04em;color:#5e493a}
 .footer-bottom small:last-child b{font-weight:700;color:#96652f}
+
+/* Fundo móvel vertical e leve; reduz transferência e enquadra a marca em telas estreitas. */
+@media(max-width:640px){body:not(.catalog-page){background-image:linear-gradient(#f1ece6b8,#f1ece6d1),url('../assets/dellas-cover-mobile.jpg');background-size:cover;background-position:center 42%;background-attachment:scroll}.catalog-hero{background-image:url('../assets/dellas-cover-mobile.jpg');background-position:center 44%;background-size:cover}}
+.ticker i,.ticker-segment:after{font-family:Georgia,'Times New Roman',serif;font-style:normal;font-variant-emoji:text;color:#f4d9a8}

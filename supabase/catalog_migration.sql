@@ -29,6 +29,7 @@ create table if not exists public.link_page_products (
 );
 
 alter table public.link_page_products add column if not exists show_in_carousel boolean not null default true;
+alter table public.link_page_products add column if not exists gallery_images jsonb not null default '[]'::jsonb;
 
 alter table public.link_page_products enable row level security;
 drop policy if exists "public read enabled catalog products" on public.link_page_products;
