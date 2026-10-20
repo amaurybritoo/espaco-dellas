@@ -1,34 +1,28 @@
-# Espaço Dellas — Página de links
+# Espaço Dellas
 
-Projeto separado baseado na estrutura anterior de página de links, com identidade visual própria: blush, marfim, champagne/rosé gold e textura suave de papel/tecido. Inclui página pública e painel administrativo. O catálogo de produtos não faz parte desta etapa.
+Página de links e catálogo administrável com a identidade visual marfim, caramelo, dourado e areia. A marca usa selo circular.
 
-## Funcionalidades
-- Página pública mobile-first, com links gerenciáveis, compartilhamento, localização e mapa.
-- Painel em `/admin` com autenticação, edição das informações, logo/fundo e gerenciamento de botões.
-- Persistência no Supabase (Auth, REST API, Storage e tabelas do projeto).
-- Estilo responsivo para celular e desktop.
+## Recursos
 
-## Dados padrão
-- Instagram: https://www.instagram.com/espacodellasam/
-- WhatsApp: https://wa.me/5592993258071
-- Endereço: Avenida Tancredo Neves, 6, Parque 10 de Novembro, Manaus-AM, CEP 69054-040.
-- Horários informados: segunda a sábado, 9h30–18h; feriados, 9h30–14h; domingo fechado.
+- `index.html`: página de links centralizada, com ticker da marca, card do catálogo, atendimento, redes e localização.
+- `catalogo.html`: vitrine responsiva com capa Dellas, carrossel automático sem setas, busca, filtros de categoria, fotos, preços e consulta das peças pelo WhatsApp.
+- `admin/`: painel com identidade Dellas para editar perfil, links, logo, fundo/capa, paleta, textos do catálogo e produtos.
+- Imagens de produtos são reduzidas para WebP antes do envio. Produtos desativados não aparecem ao público.
 
-## Configuração necessária antes de publicar
-1. No **SQL Editor** do Supabase usado pelo site, execute `supabase/link_page.sql` para criar as tabelas, permissões e bucket `link-assets`.
-2. Se esse Supabase já foi usado pela Demasi, execute em seguida `supabase/repair_espaco_dellas.sql`. Ele troca o perfil principal pelos dados do Espaço Dellas e remove apenas os cards antigos dessa página.
-3. Em **Authentication > Users**, crie ou confirme o usuário que usará `/admin`. O usuário precisa pertencer ao mesmo projeto Supabase apontado pelo código.
-4. Use somente URL e chave pública/publishable no frontend; nunca use a chave `service_role`.
-5. Publique como projeto Vercel separado e teste `/` e `/admin` em celular e desktop.
+## Ativar o catálogo no Supabase
 
-## Importante
-O painel não cria usuários do Supabase: o acesso é definido em Authentication. Logo e fundo enviados pelo painel são guardados no bucket `link-assets`. Não há catálogo desenvolvido nesta etapa.
+Para uma instalação já existente, execute `supabase/catalog_migration.sql` no SQL Editor do Supabase. A migração cria a tabela de produtos, configura leitura pública apenas para itens publicados e grava oito peças fictícias para demonstrar o catálogo. Edite ou exclua essas peças no painel antes de divulgar produtos reais.
 
+Em uma instalação nova, `supabase/link_page.sql` já inclui essa estrutura. O armazenamento de imagens usa o bucket público `link-assets` criado pelo script de configuração existente. O painel continua protegido por autenticação do Supabase.
 
-## Nota importante de autenticação (v14)
-A URL do projeto foi atualizada para `https://awlecfmaivubbxlfvysz.supabase.co` em `js/app.js` e `js/admin.js`. Confirme que a chave pública configurada nos dois arquivos pertence a esse mesmo projeto; se não pertencer, substitua-a pela chave publicável correta em **Supabase Dashboard → Settings → API Keys**. URL e chave precisam ser do mesmo projeto. Não use `service_role` nem uma chave secreta no frontend. A autenticação ainda precisa ser testada com a chave correspondente.
+Use apenas chave publicável no navegador. Nunca use uma chave `service_role`.
 
+A imagem `assets/dellas-cover.png` é usada como fundo da página de links e como capa da vitrine. Os controles de pausa respeitam a preferência de movimento reduzido do dispositivo.
 
-### Configuração Supabase (v16)
+## Paleta Dellas
 
-A URL do projeto foi atualizada para `https://awlecfmaivubbxlfvysz.supabase.co` em `js/app.js` e `js/admin.js`. A chave pública atualmente presente no código (`sb_publishable_...`) foi mantida porque não recebemos a chave pública do projeto de destino; confirme em **Supabase Dashboard → Settings → API Keys** que ela pertence ao projeto `awlecfmaivubbxlfvysz`. Se não pertencer, substitua `SUPABASE_KEY` nos dois arquivos pela chave publicável desse projeto. URL e chave precisam ser do mesmo projeto; não use `service_role` nem uma chave secreta no frontend.
+- Marfim `#F1ECE6`
+- Caramelo `#B5825B`
+- Dourado `#96652F`
+- Areia `#D8C5B3`
+- Branco suave `#FFFCF8`
