@@ -4,11 +4,11 @@
 const SUPABASE_URL='https://awlecfmaivubbxlfvysz.supabase.co';
 const SUPABASE_KEY='sb_publishable_3p9Rdi65L_3RkKDAKYQRjw_FpF0wOOd';
 const $=id=>document.getElementById(id);
-let token=null,settings={},links=[],products=[];
+let token=null,settings={},links=[],products=[],refreshPromise=null;
 let editingProduct=null,pendingDeleteRow=null,pendingDeleteProduct=null;
 
 function authHeaders(){return{apikey:SUPABASE_KEY,...(token?{Authorization:`Bearer ${token}`}:{ }),'Content-Type':'application/json'}}
-async function api(path,opt={}){const r=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{...opt,headers:{...authHeaders(),...(opt.headers||{})}});let data=null;try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.message||data?.hint||`HTTP ${r.status}`);return data}
+async function api(path,opt={}){const url=`${SUPABASE_URL}/rest/v1/${path}`,request=()=>fetch(url,{...opt,headers:{...authHeaders(),...(opt.headers||{})}});let r=await request();if(r.status===401&&token&&await refreshSession())r=await request();let data=null;try{data=await r.json()}catch{}if(!r.ok)throw new Error(r.status===401?'Sua sessão expirou. Entre novamente no painel.':data?.message||data?.hint||`HTTP ${r.status}`);return data}
 async function signIn(email,password){
   let response;
   try{response=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:String(email||'').trim().toLowerCase(),password})})}
@@ -27,8 +27,8 @@ async function signIn(email,password){
   if(!data?.access_token||!data?.refresh_token)throw new Error('O Supabase não retornou uma sessão válida. Verifique a configuração de autenticação.');
   token=data.access_token;localStorage.setItem('espaco_dellas_links_session',JSON.stringify({access_token:data.access_token,refresh_token:data.refresh_token}));
 }
-async function refreshSession(){const raw=localStorage.getItem('espaco_dellas_links_session');if(!raw)return false;try{const saved=JSON.parse(raw);if(!saved.refresh_token)return false;const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:saved.refresh_token})});const data=await r.json();if(!r.ok)throw new Error('expired');token=data.access_token;localStorage.setItem('espaco_dellas_links_session',JSON.stringify({access_token:data.access_token,refresh_token:data.refresh_token}));return true}catch{localStorage.removeItem('espaco_dellas_links_session');return false}}
-async function upload(file,path){const r=await fetch(`${SUPABASE_URL}/storage/v1/object/link-assets/${path}`,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':file.type,'x-upsert':'true'},body:file});let data=null;try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.message||`Falha no upload (${r.status})`);return `${SUPABASE_URL}/storage/v1/object/public/link-assets/${path}`}
+async function refreshSession(){if(refreshPromise)return refreshPromise;refreshPromise=(async()=>{const raw=localStorage.getItem('espaco_dellas_links_session');if(!raw)return false;try{const saved=JSON.parse(raw);if(!saved.refresh_token)return false;const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:saved.refresh_token})});const data=await r.json();if(!r.ok||!data.access_token||!data.refresh_token)throw new Error('expired');token=data.access_token;localStorage.setItem('espaco_dellas_links_session',JSON.stringify({access_token:data.access_token,refresh_token:data.refresh_token}));return true}catch{localStorage.removeItem('espaco_dellas_links_session');return false}})();try{return await refreshPromise}finally{refreshPromise=null}}
+async function upload(file,path){const url=`${SUPABASE_URL}/storage/v1/object/link-assets/${path}`,options=()=>({method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${token}`,'Content-Type':file.type,'x-upsert':'true'},body:file});let r=await fetch(url,options());if(r.status===401&&await refreshSession())r=await fetch(url,options());let data=null;try{data=await r.json()}catch{}if(!r.ok)throw new Error(r.status===401?'Sua sessão expirou. Entre novamente no painel.':data?.message||data?.hint||`Falha no upload (${r.status})`);return `${SUPABASE_URL}/storage/v1/object/public/link-assets/${path}`}
 function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),2800)}
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showApp(){ $('login').hidden=true;$('app').hidden=false }

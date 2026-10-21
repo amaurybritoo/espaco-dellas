@@ -17,6 +17,9 @@
 
 .catalog-drawer .drawer-footer{width:100%;align-self:stretch;justify-items:start;text-align:left;padding-left:12px;padding-right:12px}.catalog-drawer .drawer-footer>*{justify-self:start;text-align:left}
 
+@media(min-width:761px){.catalog-hero{min-height:clamp(760px,calc(100svh - 82px),900px)}}
+@media(max-width:760px){.catalog-hero{min-height:max(100svh,760px);padding-bottom:clamp(80px,14svh,132px)!important}}
+
 /* Assinatura Dellas flutuando com discrição atrás da área de coleção. */
 .catalog-story{position:relative;isolation:isolate}
 .dellas-drift{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
