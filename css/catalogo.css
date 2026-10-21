@@ -136,3 +136,8 @@
 .catalog-shell>.catalog-site-footer .footer-contact:after{content:none!important}
 .carousel-arrow{display:none!important}
 @media(max-width:760px){.catalog-shell>.catalog-site-footer{margin:30px 0 -34px calc((100% - 100vw)/2)!important;padding-bottom:22px!important}}
+
+/* Cabeçalho translúcido com a marca preservada em opacidade total. */
+.catalog-header{background:rgba(247,240,232,.58);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.catalog-menu-toggle,.catalog-brand span{opacity:.66}
+.catalog-brand img{opacity:1}
