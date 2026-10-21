@@ -149,8 +149,8 @@
 
 /* Hero mais amplo e camada leve para manter o texto legível sem esconder a foto. */
 .catalog-hero{min-height:clamp(820px,calc(100svh - 28px),980px)}
-.catalog-hero .hero-copy{padding:clamp(18px,2.2vw,30px);border:1px solid rgba(255,250,241,.24);border-radius:20px;background:rgba(255,250,241,.22);box-shadow:0 12px 34px rgba(55,35,22,.06);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.catalog-hero .hero-copy{padding:clamp(18px,2.2vw,30px);border:1px solid rgba(255,250,241,.24);border-radius:20px;background:rgba(255,250,241,.42);box-shadow:0 12px 34px rgba(55,35,22,.06);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
 @media(max-width:760px){
   .catalog-hero{min-height:max(112svh,900px)!important;padding-bottom:clamp(110px,17svh,160px)!important;background-position:center 48%!important}
-  .catalog-hero .hero-copy{padding:18px 16px;background:rgba(255,250,241,.22)!important;border-color:rgba(255,255,255,.28);box-shadow:0 8px 26px rgba(55,35,22,.05);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+  .catalog-hero .hero-copy{padding:18px 16px;background:rgba(255,250,241,.42)!important;border-color:rgba(255,255,255,.28);box-shadow:0 8px 26px rgba(55,35,22,.05);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
 }
