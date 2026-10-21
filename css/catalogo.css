@@ -15,7 +15,7 @@
 
 .drawer-products-toggle{display:block;width:100%;padding:14px 12px;border:0;border-bottom:1px solid #b5825b24;background:transparent;text-align:left;color:#4d3828;font:500 13px var(--sans);cursor:pointer;transition:background .2s,padding .2s}.drawer-products-toggle:hover{padding-left:17px;background:#b5825b12}.drawer-category-group[hidden]{display:none}.catalog-drawer>.drawer-whatsapp{display:block;margin-top:15px;padding:13px 14px;border:1px solid #b5825b66;border-radius:12px;background:#ead8c3;color:#543524;font-size:12px;text-align:center}.drawer-category-group{padding-top:8px}
 
-.catalog-drawer .drawer-footer{width:100%;align-self:stretch;justify-items:start;text-align:left;padding-left:12px;padding-right:12px}
+.catalog-drawer .drawer-footer{width:100%;align-self:stretch;justify-items:start;text-align:left;padding-left:12px;padding-right:12px}.catalog-drawer .drawer-footer>*{justify-self:start;text-align:left}
 
 /* Assinatura Dellas flutuando com discrição atrás da área de coleção. */
 .catalog-story{position:relative;isolation:isolate}

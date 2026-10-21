@@ -2,6 +2,8 @@
 -- Execute no SQL Editor do Supabase uma única vez (ou com segurança várias vezes).
 
 alter table public.link_page_products
+  add column if not exists show_in_carousel boolean not null default true,
+  add column if not exists gallery_images jsonb not null default '[]'::jsonb,
   add column if not exists original_price numeric(10,2),
   add column if not exists promo_type text,
   add column if not exists promo_qty integer,

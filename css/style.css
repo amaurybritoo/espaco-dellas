@@ -86,6 +86,6 @@ body:not(.catalog-page) .site-footer .footer-contact:after{content:none!importan
 /* Mobile: o fundo acompanha a página sem o efeito de zoom do background fixo. */
 body:not(.catalog-page){background-attachment:scroll!important}
 @media(max-width:640px){
-  body:not(.catalog-page){background-image:linear-gradient(#f1ece630,#f1ece65c),url('../assets/dellas-cover-mobile-v4.jpg')!important;background-size:100% auto!important;background-position:center top!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
-  body:not(.catalog-page)::before{display:none!important}
+  body:not(.catalog-page){position:relative;isolation:isolate;touch-action:pan-y;background-image:none!important;background-color:#f1ece6;background-attachment:scroll!important}
+  body:not(.catalog-page)::before{content:'';display:block!important;position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(#f1ece630,#f1ece65c),url('../assets/dellas-cover-mobile-v4.jpg') center top/cover no-repeat}
 }
