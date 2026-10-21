@@ -82,3 +82,10 @@ body:not(.catalog-page) .site-footer .footer-contact:after{content:none!importan
 
 /* Ícone oficial de WhatsApp consistente nos cards e no botão flutuante. */
 .link-icon svg.wa-svg{width:22px;height:22px;fill:currentColor;stroke:none;stroke-width:0}
+
+/* Mobile: o fundo acompanha a página sem o efeito de zoom do background fixo. */
+body:not(.catalog-page){background-attachment:scroll!important}
+@media(max-width:640px){
+  body:not(.catalog-page){background-image:linear-gradient(#f1ece630,#f1ece65c),url('../assets/dellas-cover-mobile-v4.jpg')!important;background-size:100% auto!important;background-position:center top!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
+  body:not(.catalog-page)::before{display:none!important}
+}
