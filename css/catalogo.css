@@ -2663,44 +2663,113 @@ html.scroll-locked body {
   }
 }
 
-/* ---- Carrossel no celular ---- */
+/* ---- Celular: hero compacto e carrossel inteiro visível ao abrir o catálogo ---- */
 @media (max-width: 760px) {
+  .catalog-hero {
+    min-height: 0 !important;
+    align-content: start;
+    gap: 14px;
+    padding: 20px 13px 22px !important;
+  }
+  .catalog-hero .hero-copy {
+    padding: 16px 14px 18px;
+  }
+  .catalog-hero .hero-copy h1 {
+    margin: 9px 0;
+    font-size: clamp(40px, 11.4vw, 50px);
+  }
+  .catalog-hero .hero-copy > p:not(.eyebrow) {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .catalog-hero .hero-copy .catalog-contact-button {
+    margin-top: 10px;
+  }
   .featured-carousel {
     min-height: 0;
     border-radius: 20px;
     backdrop-filter: none;
   }
   .featured-slide {
-    grid-template-columns: minmax(0, 1fr);
-    height: auto;
+    grid-template-columns: 42% minmax(0, 1fr);
+    height: 224px;
     animation-duration: 0.55s;
   }
   .featured-image {
-    height: auto;
-    aspect-ratio: 5 / 6;
-    max-height: 62svh;
+    height: 100%;
+  }
+  .feature-badge {
+    top: 10px;
+    left: 10px;
+    padding: 6px 9px;
+    font-size: 8px;
+  }
+  .feature-count {
+    right: 8px;
+    bottom: 8px;
+    padding: 5px 8px;
+    font-size: 8px;
+  }
+  .featured-image .product-tag {
+    bottom: 8px;
+    left: 8px;
+    top: auto;
   }
   .featured-copy {
-    padding: 18px 20px 22px;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12px 14px 12px 16px;
   }
-  .featured-copy::after {
-    font-size: 92px;
+  .featured-copy::after,
+  .featured-copy > p {
+    display: none;
   }
-  .featured-copy h2 {
-    font-size: 36px;
+  .feature-kicker {
+    font-size: 8px;
   }
   .feature-category {
-    margin-top: 12px;
+    margin-top: 8px;
+    font-size: 8px;
+  }
+  .featured-copy h2 {
+    margin: 4px 0 6px;
+    font-size: 26px;
   }
   .feature-price {
-    margin-top: 14px;
+    margin: 4px 0 0;
   }
   .feature-price .price-now {
-    font-size: 22px;
+    font-size: 19px;
+  }
+  .feature-price .price-now.is-consult {
+    font-size: 14px;
+  }
+  .feature-price .price-old {
+    font-size: 11px;
+  }
+  .feature-price .price-note {
+    font-size: 10px;
+  }
+  .feature-link {
+    align-self: flex-start;
+    margin-top: 10px;
+    padding: 9px 14px;
+    font-size: 9px;
   }
   .carousel-dots {
-    min-height: 48px;
-    padding-block: 4px;
+    width: fit-content;
+    min-height: 40px;
+    margin: 8px auto 0;
+    padding: 0 10px;
+    border-radius: 99px;
+    background: rgba(255, 250, 243, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .carousel-hint {
+    display: none;
   }
 }
 

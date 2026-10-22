@@ -633,9 +633,19 @@ function renderProducts() {
     $("productsList").innerHTML =
       '<div class="empty-links"><span>…</span><strong>Preparando o catálogo</strong></div>';
 }
+const MAX_PRICE = 999999.99;
 function parseBrazilianMoney(value) {
-  const digits = String(value ?? "").replace(/\D/g, "");
-  return digits ? Number(digits) / 100 : null;
+  const text = String(value ?? "")
+    .trim()
+    .replace(/\./g, "")
+    .replace(",", ".")
+    .replace(/[^0-9.]/g, "");
+  if (!text) return null;
+  const number = Number(text);
+  if (!Number.isFinite(number)) return null;
+  if (number > MAX_PRICE)
+    throw new Error("Valor muito alto. O máximo permitido é R$ 999.999,99.");
+  return number;
 }
 async function saveManagedProduct(input = {}) {
   const form = input.form || input,
@@ -652,19 +662,20 @@ async function saveManagedProduct(input = {}) {
   const name = form.name.trim(),
     category = form.category.trim();
   if (!name || !category) throw new Error("Informe nome e categoria.");
-  const gallery = [];
-  for (let index = 0; index < images.length; index++) {
-    const entry = images[index];
-    if (entry.file) {
-      const optimized = await optimizeImage(entry.file);
-      gallery.push(
-        await upload(
+  // Fotos novas são otimizadas e enviadas ao mesmo tempo (antes: uma por vez).
+  const stamp = Date.now();
+  const gallery = await Promise.all(
+    images.map(async (entry, index) => {
+      if (entry.file) {
+        const optimized = await optimizeImage(entry.file);
+        return upload(
           optimized,
-          `products/${Date.now()}-${index}-${slugify(name)}.webp`,
-        ),
-      );
-    } else if (entry.url) gallery.push(entry.url);
-  }
+          `products/${stamp}-${index}-${slugify(name)}.webp`,
+        );
+      }
+      return entry.url || null;
+    }),
+  ).then((urls) => urls.filter(Boolean));
   const imageUrl = gallery[0] || null;
   const promoType = form.promo_type === "none" ? null : form.promo_type;
   const payload = {
@@ -737,7 +748,7 @@ async function saveManagedProduct(input = {}) {
   if (position >= 0) products[position] = { ...products[position], ...saved };
   else if (saved.is_demo !== true) products.push(saved);
   renderProducts();
-  await loadProducts();
+  loadProducts(); // atualiza em segundo plano; o formulário fecha na hora
   toast(product ? "Peça atualizada." : "Peça adicionada ao catálogo.");
 }
 async function deleteManagedProduct(id) {
@@ -807,15 +818,16 @@ async function optimizeImage(file) {
   if (!file || !file.type.startsWith("image/"))
     throw new Error("Escolha uma imagem JPG, PNG ou WebP.");
   const image = await createImageBitmap(file),
-    scale = Math.min(1, 2000 / Math.max(image.width, image.height)),
+    scale = Math.min(1, 1600 / Math.max(image.width, image.height)),
     canvas = document.createElement("canvas");
   canvas.width = Math.round(image.width * scale);
   canvas.height = Math.round(image.height * scale);
   const context = canvas.getContext("2d");
   context.imageSmoothingQuality = "high";
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  image.close?.();
   const blob = await new Promise((resolve) =>
-    canvas.toBlob(resolve, "image/webp", 0.9),
+    canvas.toBlob(resolve, "image/webp", 0.86),
   );
   if (!blob) throw new Error("Não foi possível otimizar a imagem.");
   return new File(
