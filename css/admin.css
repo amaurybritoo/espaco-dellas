@@ -156,3 +156,18 @@
 #linkTypeFilter,#linkTypeFilter:focus,#linkTypeFilter:focus-visible{appearance:none;-webkit-appearance:none;border:0!important;border-radius:0;outline:0!important;box-shadow:none!important;background:transparent}
 .admin-menu-item{grid-template-columns:1fr;column-gap:0;padding-left:18px}.admin-menu-item>span{display:none}.admin-intro{margin:0 0 18px;padding:20px 22px;border:1px solid #96652f26;border-radius:15px;background:linear-gradient(120deg,#fffaf5,#f4e9dc);box-shadow:0 8px 22px #553a2208}.admin-intro h2{margin:6px 0 5px;font:400 clamp(22px,3vw,29px) 'Italiana',Georgia,serif;color:var(--brand-ink)}.admin-intro p{max-width:850px;margin:0;color:var(--muted);font-size:11px;line-height:1.75}.admin-intro strong{color:var(--brand-accent)}
 @media(max-width:620px){.admin-menu-item{grid-template-columns:1fr;min-height:60px;padding:10px}.admin-intro{padding:16px}.admin-intro p{font-size:10px}}
+
+/* Popup aberto: a página de fundo não rola. */
+html.scroll-locked {
+  overflow: hidden;
+}
+html.scroll-locked body {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+  overflow: hidden;
+}
+dialog {
+  overscroll-behavior: contain;
+}
