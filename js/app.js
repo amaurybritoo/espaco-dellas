@@ -990,7 +990,7 @@ function showToast(message) {
 async function shareProduct(product) {
   const url = productLink(product),
     title = `${product.name || "Peça"} — Espaço Dellas`,
-    text = `Olha essa peça da Espaço Dellas:\n${productSummary(product)}`;
+    text = `Olha essa peça da Espaço Dellas:\n*${product.name || "Peça Dellas"}*`;
   try {
     if (navigator.share) {
       await navigator.share({ title, text, url });

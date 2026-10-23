@@ -1,0 +1,9 @@
+{
+  "name": "espaco-dellas",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Site Espaço Dellas (links + catálogo). A pasta api/ usa sharp para gerar a foto de prévia do WhatsApp.",
+  "dependencies": {
+    "sharp": "^0.33.5"
+  }
+}

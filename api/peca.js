@@ -27,13 +27,19 @@ function priceText(product) {
     return `leve ${qty} por ${brl(promo)}`;
   return price ? brl(price) : "";
 }
-function previewImage(product) {
+/* A foto vai por /api/foto, que a converte em JPEG (WhatsApp não exibe WebP). */
+function previewImage(product, origin) {
   const gallery = Array.isArray(product.gallery_images)
       ? product.gallery_images
       : [],
     url = String(product.image_url || gallery[0] || "");
   if (!/^https:\/\//.test(url)) return "";
-  return url.replace(/\.hd\.webp(\?|$)/, ".sm.webp$1");
+  const match = url.match(
+    /\/storage\/v1\/object\/public\/link-assets\/(products\/[\w.\-]+)$/,
+  );
+  return match && origin
+    ? `${origin}/api/foto?p=${encodeURIComponent(match[1])}`
+    : url;
 }
 function page({ title, description, image, target, origin, canonical }) {
   const tags = [
@@ -45,6 +51,9 @@ function page({ title, description, image, target, origin, canonical }) {
     `<meta property="og:url" content="${esc(canonical)}">`,
     image ? `<meta property="og:image" content="${esc(image)}">` : "",
     image ? `<meta property="og:image:alt" content="${esc(title)}">` : "",
+    image.includes("/api/foto")
+      ? `<meta property="og:image:type" content="image/jpeg">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">`
+      : "",
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">`,
     `<meta name="twitter:title" content="${esc(title)}">`,
     `<meta name="twitter:description" content="${esc(description)}">`,
@@ -111,7 +120,9 @@ module.exports = async (req, res) => {
       description: [lead, about || "Toque para ver os detalhes da peça."]
         .filter(Boolean)
         .join(" — "),
-      image: previewImage(product),
+      image:
+        previewImage(product, origin) ||
+        (origin ? `${origin}/assets/dellas-og.jpg` : ""),
       target,
       origin,
       canonical: `${origin}/p/${encodeURIComponent(slug)}`,
@@ -125,7 +136,7 @@ module.exports = async (req, res) => {
       title: "Catálogo — Espaço Dellas",
       description:
         "Peças escolhidas para acompanhar seus dias com personalidade, conforto e leveza.",
-      image: origin ? `${origin}/assets/dellas-cover-v5.webp` : "",
+      image: origin ? `${origin}/assets/dellas-og.jpg` : "",
       target: `${origin}/catalogo.html`,
       origin,
       canonical: `${origin}/catalogo.html`,
