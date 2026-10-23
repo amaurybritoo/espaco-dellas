@@ -203,6 +203,7 @@ async function upload(file, path) {
           apikey: SUPABASE_KEY,
           Authorization: `Bearer ${token}`,
           "Content-Type": file.type,
+          "Cache-Control": "max-age=31536000",
           "x-upsert": "true",
         },
         body: file,
@@ -662,16 +663,19 @@ async function saveManagedProduct(input = {}) {
   const name = form.name.trim(),
     category = form.category.trim();
   if (!name || !category) throw new Error("Informe nome e categoria.");
-  // Fotos novas são otimizadas e enviadas ao mesmo tempo (antes: uma por vez).
+  // Fotos novas: a versão grande (.hd) e a miniatura (.sm) já costumam estar
+  // prontas desde a escolha do arquivo; tudo sobe ao mesmo tempo.
   const stamp = Date.now();
   const gallery = await Promise.all(
     images.map(async (entry, index) => {
       if (entry.file) {
-        const optimized = await optimizeImage(entry.file);
-        return upload(
-          optimized,
-          `products/${stamp}-${index}-${slugify(name)}.webp`,
-        );
+        const variants = await prepareImage(entry.file),
+          base = `products/${stamp}-${index}-${slugify(name)}`;
+        const [hdUrl] = await Promise.all([
+          upload(variants.hd, `${base}.hd.webp`),
+          upload(variants.sm, `${base}.sm.webp`).catch(() => null),
+        ]);
+        return hdUrl;
       }
       return entry.url || null;
     }),
@@ -814,28 +818,59 @@ function previewImage(file) {
   preview.hidden = false;
   $("productImagePlaceholder").hidden = true;
 }
-async function optimizeImage(file) {
-  if (!file || !file.type.startsWith("image/"))
-    throw new Error("Escolha uma imagem JPG, PNG ou WebP.");
-  const image = await createImageBitmap(file),
-    scale = Math.min(1, 1600 / Math.max(image.width, image.height)),
+const IMAGE_VARIANTS = { hd: [1600, 0.86], sm: [640, 0.8] };
+async function renderVariant(image, name, [max, quality]) {
+  const scale = Math.min(1, max / Math.max(image.width, image.height)),
     canvas = document.createElement("canvas");
   canvas.width = Math.round(image.width * scale);
   canvas.height = Math.round(image.height * scale);
   const context = canvas.getContext("2d");
   context.imageSmoothingQuality = "high";
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  image.close?.();
   const blob = await new Promise((resolve) =>
-    canvas.toBlob(resolve, "image/webp", 0.86),
+    canvas.toBlob(resolve, "image/webp", quality),
   );
   if (!blob) throw new Error("Não foi possível otimizar a imagem.");
-  return new File(
-    [blob],
-    `${slugify(file.name.replace(/\.[^.]+$/, ""))}.webp`,
-    { type: "image/webp" },
-  );
+  return new File([blob], name, { type: "image/webp" });
 }
+async function buildVariants(file) {
+  if (!file || !file.type.startsWith("image/"))
+    throw new Error("Escolha uma imagem JPG, PNG ou WebP.");
+  const image = await createImageBitmap(file),
+    base = slugify(file.name.replace(/\.[^.]+$/, ""));
+  try {
+    const hd = await renderVariant(image, `${base}.hd.webp`, IMAGE_VARIANTS.hd),
+      sm = await renderVariant(image, `${base}.sm.webp`, IMAGE_VARIANTS.sm);
+    return { hd, sm };
+  } finally {
+    image.close?.();
+  }
+}
+// Cada arquivo é processado uma única vez; o resultado fica guardado.
+const preparedImages = new WeakMap();
+function prepareImage(file) {
+  if (!preparedImages.has(file)) {
+    const task = buildVariants(file);
+    task.catch(() => preparedImages.delete(file));
+    preparedImages.set(file, task);
+  }
+  return preparedImages.get(file);
+}
+async function optimizeImage(file) {
+  return (await prepareImage(file)).hd;
+}
+// Assim que a cliente escolhe as fotos, já começamos a prepará-las em segundo
+// plano; ao tocar em "Salvar" só falta enviar.
+document.addEventListener(
+  "change",
+  (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== "file") return;
+    for (const file of input.files || [])
+      if (file.type.startsWith("image/")) prepareImage(file).catch(() => {});
+  },
+  true,
+);
 async function saveProduct(event) {
   event.preventDefault();
   const name = $("productName").value.trim(),

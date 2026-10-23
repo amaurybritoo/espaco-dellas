@@ -237,30 +237,69 @@ function titleHtml(value) {
     )
     .join("<br>");
 }
-async function read(path, attempt = 0) {
+/* Leitura enxuta: um GET simples (sem cabeçalhos personalizados) não gera
+   a viagem extra de "preflight" do navegador, o que poupa uns 100–300 ms no
+   celular. Se o servidor recusar, cai para o modo com cabeçalhos. */
+function restUrl(path) {
+  return `${SUPABASE_URL}/rest/v1/${path}${path.includes("?") ? "&" : "?"}apikey=${SUPABASE_KEY}`;
+}
+async function fetchJson(url, options, ms = 8000) {
   const controller = new AbortController(),
-    timeout = setTimeout(() => controller.abort(), 8000);
+    timer = setTimeout(() => controller.abort(), ms);
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    const response = await fetch(url, {
       cache: "no-store",
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
+      ...options,
       signal: controller.signal,
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
-  } catch (error) {
-    if (attempt < 1 && !/HTTP 40[13]/.test(error.message)) {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      return read(path, attempt + 1);
-    }
-    throw error;
   } finally {
-    clearTimeout(timeout);
+    clearTimeout(timer);
+  }
+}
+async function read(path) {
+  try {
+    return await fetchJson(restUrl(path));
+  } catch (error) {
+    return fetchJson(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+      },
+    });
+  }
+}
+/* Usa a busca que o <head> já começou antes mesmo deste arquivo carregar. */
+function early(name, path) {
+  const task = window.__dellasEarly?.[name];
+  if (window.__dellasEarly) delete window.__dellasEarly[name];
+  return task ? task.catch(() => read(path)) : read(path);
+}
+/* Cache local: mostra na hora o que a visita anterior viu e atualiza em seguida. */
+const CACHE_PREFIX = "dellas:v2:";
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function cacheSet(key, value) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(value));
+  } catch {}
+}
+/* Miniatura: fotos novas têm uma versão leve (.sm.webp) ao lado da grande. */
+function thumbUrl(url) {
+  return /\.hd\.webp(\?|$)/.test(url)
+    ? url.replace(/\.hd\.webp/, ".sm.webp")
+    : url;
+}
+function thumbFallback(img) {
+  if (img.dataset.full && img.src !== img.dataset.full) {
+    img.src = img.dataset.full;
   }
 }
 function safeUrl(value) {
@@ -301,8 +340,8 @@ function applyTheme(settings) {
     const mobile = media.matches,
       background = safeUrl(
         mobile
-          ? "assets/dellas-cover-mobile-v4.jpg"
-          : settings.background_url || "assets/dellas-cover.png",
+          ? "assets/dellas-cover-mobile-v5.webp"
+          : settings.background_url || "assets/dellas-cover-v5.webp",
       );
     if (!isCatalog) {
       document.body.style.backgroundImage = mobile
@@ -601,8 +640,10 @@ function productArt(product, index, { flag = true } = {}) {
       (tag
         ? `<span class="product-flag" data-kind="${tag.kind}">${esc(tag.label)}</span>`
         : "");
-  if (product.image_url)
-    return `<div class="product-art" data-tone="${tone}"><img loading="lazy" decoding="async" src="${esc(safeUrl(product.image_url))}" alt="${esc(product.image_alt || product.name)}">${tags}</div>`;
+  if (product.image_url) {
+    const full = safeUrl(product.image_url);
+    return `<div class="product-art" data-tone="${tone}"><img loading="lazy" decoding="async" src="${esc(thumbUrl(full))}" data-full="${esc(full)}" alt="${esc(product.image_alt || product.name)}">${tags}</div>`;
+  }
   const colors = ["#b36e4b", "#7d8771", "#c2a384", "#8e696f"];
   return `<div class="product-art" data-tone="${tone}"><svg viewBox="0 0 240 280" aria-hidden="true"><path class="product-hanger" d="M120 36c0-12 17-13 17-2 0 6-6 8-10 12l-5 7M57 75l63-24 63 24M57 75h126"/><g style="--item-color:${colors[index % 4]}">${modelShapes[index % modelShapes.length]}</g></svg>${tags}</div>`;
 }
@@ -611,8 +652,13 @@ function productArt(product, index, { flag = true } = {}) {
    Proporção parecida com a do quadro  -> "cover" (preenche tudo, sem esticar).
    Proporção muito diferente           -> "contain" (foto inteira, nítida) sobre um
                                           fundo desfocado da própria foto. */
-function photoHtml(url, alt, { eager = false, extra = "" } = {}) {
-  return `<figure class="photo ${extra}" data-fit="cover" data-src="${esc(url)}"><img class="${extra ? extra + "-img" : ""}" src="${esc(url)}" alt="${esc(alt)}" decoding="async"${eager ? "" : ' loading="lazy"'}></figure>`;
+function photoHtml(
+  url,
+  alt,
+  { eager = false, extra = "", thumb = false } = {},
+) {
+  const shown = thumb ? thumbUrl(url) : url;
+  return `<figure class="photo ${extra}" data-fit="cover" data-src="${esc(shown)}"><img class="${extra ? extra + "-img" : ""}" src="${esc(shown)}" data-full="${esc(url)}" alt="${esc(alt)}" decoding="async"${eager ? ' fetchpriority="high"' : ' loading="lazy"'}></figure>`;
 }
 function fitPhoto(figure) {
   const img = figure.querySelector("img");
@@ -695,6 +741,7 @@ function slideHtml(item, index, total) {
       ? photoHtml(safeUrl(cover), item.image_alt || item.name, {
           eager: true,
           extra: "feature-photo",
+          thumb: matchMedia("(max-width: 640px)").matches,
         })
       : productArt(item, index, { flag: false });
   return `<article class="featured-slide" data-kind="${flag?.kind || "default"}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Ver detalhes de ${esc(item.name)}"><div class="featured-image">${media}${flag ? `<span class="feature-badge" data-kind="${flag.kind}">${esc(flag.label)}</span>` : ""}${item.is_demo ? '<span class="product-tag">MODELO TESTE</span>' : ""}${total > 1 ? `<span class="feature-count" aria-hidden="true"><b>${pad2(index + 1)}</b> / ${pad2(total)}</span>` : ""}</div><div class="featured-copy"><span class="feature-kicker"><i></i>${kicker}</span><small class="feature-category">${esc(item.category || "Novidades")}</small><h2>${esc(item.name)}</h2><p>${esc(item.description || "Uma peça escolhida pela equipe Espaço Dellas.")}</p><div class="feature-price">${priceHtml(item)}${item.is_demo ? "<small>VALOR ILUSTRATIVO</small>" : ""}</div><span class="feature-link" aria-hidden="true">Ver detalhes <b>→</b></span></div></article>`;
@@ -876,6 +923,113 @@ function renderCarousel(rows) {
 }
 
 /* ---------- Popup de detalhes da peça ---------- */
+/* ---------- Link da peça, mensagem do WhatsApp e compartilhamento ---------- */
+const siteOrigin = /^https?:$/.test(location.protocol)
+  ? location.origin
+  : "https://espaco-dellas-cyan.vercel.app";
+const productKey = (product) => String(product.slug || product.id || "");
+function productLink(product) {
+  const key = productKey(product);
+  return key
+    ? `${siteOrigin}/p/${encodeURIComponent(key)}`
+    : `${siteOrigin}/catalogo.html`;
+}
+function priceLine(product) {
+  const info = priceParts(product);
+  if (info.kind === "unit")
+    return info.old ? `de ${info.old} por ${info.now}` : `${info.now} (oferta)`;
+  if (info.kind === "bundle")
+    return info.note ? `${info.now} · ${info.note}` : info.now;
+  if (info.kind === "separate") return `${info.prefix} ${info.now}`;
+  return info.now;
+}
+function productSummary(product) {
+  const sizes = splitList(product.sizes),
+    colors = splitList(product.colors),
+    lines = [`*${product.name || "Peça Dellas"}*`];
+  lines.push(
+    `${product.category || "Novidades"} · ${priceLine(product)}`.replace(
+      / · Consulte o valor$/,
+      "",
+    ),
+  );
+  if (sizes.length) lines.push(`Tamanhos: ${sizes.join(", ")}`);
+  if (colors.length) lines.push(`Cores: ${colors.join(", ")}`);
+  return lines.join("\n").replace(/\u00a0/g, " ");
+}
+/* Mensagem pronta: apresenta a peça e leva o link com a foto (prévia). */
+function whatsappMessage(product) {
+  return [
+    "Olá! Tenho interesse nesta peça da Espaço Dellas:",
+    "",
+    productSummary(product),
+    "",
+    "Ela está disponível?",
+    productLink(product),
+  ].join("\n");
+}
+let toastTimer = 0;
+function showToast(message) {
+  let node = $("#dellasToast");
+  if (!node) {
+    node = document.createElement("div");
+    node.id = "dellasToast";
+    node.className = "dellas-toast";
+    node.setAttribute("role", "status");
+    node.setAttribute("aria-live", "polite");
+    document.body.append(node);
+  }
+  /* Dentro do popup aberto o aviso precisa ficar na mesma "camada" para aparecer. */
+  const host = document.querySelector("dialog[open]") || document.body;
+  if (node.parentNode !== host) host.append(node);
+  node.textContent = message;
+  node.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => node.classList.remove("show"), 2400);
+}
+async function shareProduct(product) {
+  const url = productLink(product),
+    title = `${product.name || "Peça"} — Espaço Dellas`,
+    text = `Olha essa peça da Espaço Dellas:\n${productSummary(product)}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      return;
+    }
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    showToast("Link da peça copiado!");
+  } catch {
+    const field = document.createElement("textarea");
+    field.value = `${text}\n${url}`;
+    field.setAttribute("readonly", "");
+    field.style.cssText = "position:fixed;opacity:0;top:0";
+    /* Com o popup aberto, o resto da página fica "inerte": o campo precisa estar dentro dele. */
+    (document.querySelector("dialog[open]") || document.body).append(field);
+    field.focus();
+    field.select();
+    try {
+      document.execCommand("copy");
+      showToast("Link da peça copiado!");
+    } catch {
+      showToast("Não foi possível copiar o link.");
+    }
+    field.remove();
+  }
+}
+/* Endereço da peça aberta (?peca=) para voltar/compartilhar a mesma tela. */
+function setPieceInUrl(product) {
+  try {
+    const url = new URL(location.href);
+    if (product) url.searchParams.set("peca", productKey(product));
+    else url.searchParams.delete("peca");
+    history.replaceState(history.state, "", url);
+  } catch {}
+}
+
 const GALLERY_DELAY = 4600;
 let galleryCleanup = null;
 function ensureProductDialog() {
@@ -886,7 +1040,7 @@ function ensureProductDialog() {
   dialog.className = "product-detail-dialog";
   dialog.setAttribute("aria-labelledby", "detailProductName");
   dialog.innerHTML =
-    '<button class="product-detail-close" type="button" aria-label="Fechar detalhes">×</button><div class="product-detail-layout"><div class="product-detail-media"><div class="product-detail-visual"><div class="product-detail-placeholder" hidden></div></div><div class="product-detail-dots" role="group" aria-label="Fotos da peça" hidden></div></div><div class="product-detail-copy"><small class="product-detail-category"></small><h2 id="detailProductName"></h2><p class="product-detail-description"></p><div class="product-detail-variants"></div><div class="product-detail-price"></div><a class="product-detail-contact whatsapp-link" target="_blank" rel="noopener">Consultar pelo WhatsApp</a></div></div>';
+    '<button class="product-detail-close" type="button" aria-label="Fechar detalhes">×</button><div class="product-detail-layout"><div class="product-detail-media"><div class="product-detail-visual"><div class="product-detail-placeholder" hidden></div></div><div class="product-detail-dots" role="group" aria-label="Fotos da peça" hidden></div></div><div class="product-detail-copy"><small class="product-detail-category"></small><h2 id="detailProductName"></h2><p class="product-detail-description"></p><div class="product-detail-variants"></div><div class="product-detail-price"></div><div class="product-detail-actions"><a class="product-detail-contact" target="_blank" rel="noopener">Consultar pelo WhatsApp</a><button class="product-detail-share" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 8a3 3 0 1 0-2.8-4.1A3 3 0 0 0 18 8ZM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm12 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8.6 10.5l6.8-3.9M8.6 13.5l6.8 3.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Compartilhar</span></button></div></div></div>';
   document.body.append(dialog);
   dialog
     .querySelector(".product-detail-close")
@@ -898,7 +1052,13 @@ function ensureProductDialog() {
     galleryCleanup?.();
     galleryCleanup = null;
     scrollLock.unlock("dialog");
+    setPieceInUrl(null);
   });
+  dialog
+    .querySelector(".product-detail-share")
+    .addEventListener("click", () => {
+      if (dialog.currentProduct) shareProduct(dialog.currentProduct);
+    });
   return dialog;
 }
 function startGallery(dialog) {
@@ -1126,14 +1286,9 @@ function openProductDetails(product) {
     priceBox = dialog.querySelector(".product-detail-price");
   priceBox.innerHTML = `<div class="detail-price-main">${priceHtml(product, { notes: false })}${info.kind === "unit" && info.pct >= 1 ? `<span class="price-save">−${info.pct}%</span>` : ""}</div>${info.kind === "bundle" ? `<div class="detail-offer"><b>${info.note || `Leve ${info.now}`}</b>${info.each ? `<small>${esc(info.each)}</small>` : ""}</div>` : ""}`;
 
-  const contact = dialog.querySelector(".product-detail-contact"),
-    base = $("#catalogCta")?.href || "https://wa.me/5592993258071",
-    url = new URL(safeUrl(base));
-  url.searchParams.set(
-    "text",
-    `Olá! Tenho interesse em ${product.name || "uma peça"}${product.is_demo ? " (modelo ilustrativo)" : ""}.`,
-  );
-  contact.href = url.href;
+  dialog.currentProduct = product;
+  const contact = dialog.querySelector(".product-detail-contact");
+  contact.href = whatsappHref($("#catalogCta")?.href, whatsappMessage(product));
   contact.setAttribute(
     "aria-label",
     `Consultar ${product.name || "peça"} pelo WhatsApp`,
@@ -1141,15 +1296,58 @@ function openProductDetails(product) {
   dialog.scrollTop = 0;
   dialog.showModal();
   scrollLock.lock("dialog");
+  setPieceInUrl(product);
   startGallery(dialog);
   return dialog;
 }
 
+/* Só mede os tamanhos/cores dos cards que estão perto da tela. */
+let metaObserver = null;
+function observeMeta(grid) {
+  if (!("IntersectionObserver" in window)) {
+    requestAnimationFrame(() => fitMetaLists(grid));
+    return;
+  }
+  metaObserver?.disconnect();
+  metaObserver = new IntersectionObserver(
+    (entries) =>
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        fitMetaLists(entry.target);
+        metaObserver.unobserve(entry.target);
+      }),
+    { rootMargin: "400px 0px" },
+  );
+  grid
+    .querySelectorAll(".product-card")
+    .forEach((card) => metaObserver.observe(card));
+}
+const catalogState = { category: "Todos", signature: "", rows: [] };
+/* Esqueleto: mostra o desenho da página na hora, sem "tela vazia". */
+function showSkeleton() {
+  const grid = $("#productGrid"),
+    stage = $("#featuredCarousel"),
+    section = $(".feature-stage");
+  $("#catalogEmpty").hidden = true;
+  grid.hidden = false;
+  grid.setAttribute("aria-busy", "true");
+  grid.innerHTML = Array.from(
+    { length: 6 },
+    () =>
+      '<article class="product-card is-skeleton" aria-hidden="true"><div class="product-art"></div><div class="product-info"><i></i><i></i><i></i></div></article>',
+  ).join("");
+  if (section && stage) {
+    section.hidden = false;
+    stage.innerHTML =
+      '<article class="featured-slide is-skeleton" aria-hidden="true"><div class="featured-image"></div><div class="featured-copy"><i></i><i></i><i></i></div></article>';
+  }
+}
 /* ---------- Grade de peças ---------- */
 function renderProducts(rows) {
   const grid = $("#productGrid"),
     empty = $("#catalogEmpty"),
     published = rows.filter((item) => isOn(item.enabled));
+  grid.removeAttribute("aria-busy");
   renderCarousel(published);
   empty.hidden = published.length > 0;
   grid.hidden = !published.length;
@@ -1161,10 +1359,12 @@ function renderProducts(rows) {
     "Todos",
     ...new Set(published.map((item) => item.category || "Novidades")),
   ];
+  if (!categories.includes(catalogState.category))
+    catalogState.category = "Todos";
   $("#categoryFilters").innerHTML = categories
     .map(
-      (category, index) =>
-        `<button class="category-filter" type="button" data-category="${esc(category)}" aria-pressed="${index === 0}">${esc(category)}</button>`,
+      (category) =>
+        `<button class="category-filter" type="button" data-category="${esc(category)}" aria-pressed="${category === catalogState.category}">${esc(category)}</button>`,
     )
     .join("");
   const drawerCategories = $("#drawerCategories");
@@ -1172,21 +1372,17 @@ function renderProducts(rows) {
     drawerCategories.innerHTML = categories
       .map(
         (category) =>
-          `<button class="drawer-category" type="button" data-category="${esc(category)}" aria-pressed="${category === categories[0]}">${esc(category)}</button>`,
+          `<button class="drawer-category" type="button" data-category="${esc(category)}" aria-pressed="${category === catalogState.category}">${esc(category)}</button>`,
       )
       .join("");
   const contactBase = $("#catalogCta").href;
   grid.innerHTML = published
     .map((product, index) => {
-      const contactUrl = new URL(safeUrl(contactBase));
-      contactUrl.searchParams.set(
-        "text",
-        `Olá! Tenho interesse em ${product.name}.`,
-      );
+      const contactHref = whatsappHref(contactBase, whatsappMessage(product));
       const search = plain(
         `${product.name} ${product.category || ""} ${product.description || ""} ${product.colors || ""}`,
       );
-      return `<article class="product-card" tabindex="0" role="button" aria-haspopup="dialog" aria-label="Ver detalhes de ${esc(product.name)}" data-product-category="${esc(product.category || "Novidades")}" data-search="${esc(search)}">${productArt(product, index)}<div class="product-info"><small>${esc(product.category || "NOVIDADES")}${product.is_demo ? " · DEMONSTRAÇÃO" : ""}</small><h2>${esc(product.name)}</h2><p>${esc(product.description || "Consulte detalhes com a nossa equipe.")}</p>${metaHtml(product)}<div class="product-buy"><span class="product-price">${priceHtml(product)}${product.is_demo ? "<small>VALOR ILUSTRATIVO</small>" : ""}</span><a href="${esc(contactUrl.href)}" target="_blank" rel="noopener" aria-label="Consultar ${esc(product.name)}">Consultar</a></div></div></article>`;
+      return `<article class="product-card" tabindex="0" role="button" aria-haspopup="dialog" aria-label="Ver detalhes de ${esc(product.name)}" data-product-category="${esc(product.category || "Novidades")}" data-search="${esc(search)}">${productArt(product, index)}<div class="product-info"><small>${esc(product.category || "NOVIDADES")}${product.is_demo ? " · DEMONSTRAÇÃO" : ""}</small><h2>${esc(product.name)}</h2><p>${esc(product.description || "Consulte detalhes com a nossa equipe.")}</p>${metaHtml(product)}<div class="product-buy"><span class="product-price">${priceHtml(product)}${product.is_demo ? "<small>VALOR ILUSTRATIVO</small>" : ""}</span><a href="${esc(contactHref)}" target="_blank" rel="noopener" aria-label="Consultar ${esc(product.name)}">Consultar</a></div></div></article>`;
     })
     .join("");
   const productByCard = new Map(
@@ -1207,13 +1403,12 @@ function renderProducts(rows) {
     event.preventDefault();
     openProductDetails(productByCard.get(card));
   };
-  let activeCategory = "Todos";
   function filterCards() {
     const query = plain($("#catalogSearch").value.trim());
     grid.querySelectorAll(".product-card").forEach((card) => {
       card.hidden =
-        (activeCategory !== "Todos" &&
-          card.dataset.productCategory !== activeCategory) ||
+        (catalogState.category !== "Todos" &&
+          card.dataset.productCategory !== catalogState.category) ||
         !card.dataset.search.includes(query);
     });
     requestAnimationFrame(() => fitMetaLists(grid));
@@ -1222,7 +1417,7 @@ function renderProducts(rows) {
   $("#categoryFilters").onclick = (event) => {
     const button = event.target.closest(".category-filter");
     if (!button) return;
-    activeCategory = button.dataset.category;
+    catalogState.category = button.dataset.category;
     $("#categoryFilters")
       .querySelectorAll("button")
       .forEach((item) =>
@@ -1233,7 +1428,7 @@ function renderProducts(rows) {
       .forEach((item) =>
         item.setAttribute(
           "aria-pressed",
-          String(item.dataset.category === activeCategory),
+          String(item.dataset.category === catalogState.category),
         ),
       );
     filterCards();
@@ -1255,7 +1450,42 @@ function renderProducts(rows) {
         }),
       );
     };
-  requestAnimationFrame(() => fitMetaLists(grid));
+  if (catalogState.category !== "Todos" || $("#catalogSearch").value.trim())
+    filterCards();
+  else observeMeta(grid);
+  const warm = (event) => {
+    const card = event.target.closest?.(".product-card");
+    if (card && productByCard.has(card)) warmProduct(productByCard.get(card));
+  };
+  grid.onpointerover = warm;
+  grid.ontouchstart = warm;
+  /* Fotos mais "quentes": as 4 primeiras peças já ficam prontas. */
+  published.slice(0, 4).forEach(warmProduct);
+}
+
+/* Se uma miniatura não existir (fotos antigas), usa a foto original. */
+document.addEventListener(
+  "error",
+  (event) => {
+    if (event.target instanceof HTMLImageElement) thumbFallback(event.target);
+  },
+  true,
+);
+/* Ao encostar numa peça, já baixa a foto grande: o popup abre instantâneo. */
+const warmed = new Set();
+function warmProduct(product) {
+  [
+    product.image_url,
+    ...(Array.isArray(product.gallery_images) ? product.gallery_images : []),
+  ]
+    .filter(Boolean)
+    .slice(0, 4)
+    .forEach((url) => {
+      const full = safeUrl(url);
+      if (full === "#" || warmed.has(full)) return;
+      warmed.add(full);
+      new Image().src = full;
+    });
 }
 
 /* "Ver peças" desce até a barra de busca. */
@@ -1274,6 +1504,35 @@ function setupSeeProducts() {
     });
   });
 }
+const SETTINGS_PATH = "link_page_settings?id=eq.1&select=*&limit=1";
+const LINKS_PATH =
+  "link_page_links?profile_id=is.null&select=*&order=sort_order.asc&limit=100";
+const PRODUCTS_PATH =
+  "link_page_products?profile_id=is.null&enabled=eq.true&select=*&order=sort_order.asc,created_at.asc&limit=200";
+const publicProducts = (rows) =>
+  rows.filter(
+    (item) =>
+      item.enabled !== false &&
+      String(item.enabled) !== "false" &&
+      item.is_demo !== true &&
+      String(item.is_demo) !== "true",
+  );
+/* Abre a peça indicada em ?peca= (link compartilhado). */
+let deepLinkDone = false;
+function openFromUrl() {
+  if (deepLinkDone || !catalogState.rows.length) return;
+  const key = new URLSearchParams(location.search).get("peca");
+  if (!key) {
+    deepLinkDone = true;
+    return;
+  }
+  const product = catalogState.rows.find(
+    (item) => String(item.slug) === key || String(item.id) === key,
+  );
+  if (!product) return;
+  deepLinkDone = true;
+  openProductDetails(product);
+}
 async function init() {
   const year = $("#year");
   if (year) year.textContent = new Date().getFullYear();
@@ -1282,42 +1541,92 @@ async function init() {
   const localPreview =
     location.protocol === "file:" ||
     ["localhost", "127.0.0.1"].includes(location.hostname);
-  applySettings(DEFAULT);
-  if (isCatalog) renderProducts(localPreview ? FALLBACK_PRODUCTS : []);
-  else renderLinks([]);
-  const settingsTask = read("link_page_settings?id=eq.1&select=*&limit=1")
-    .then((rows) => applySettings({ ...DEFAULT, ...(rows[0] || {}) }))
-    .catch(() => {});
-  const contentTask = !isCatalog
-    ? read(
-        "link_page_links?profile_id=is.null&select=*&order=sort_order.asc&limit=100",
-      )
-        .then(renderLinks)
-        .catch(() => renderLinks([]))
-    : read(
-        "link_page_products?profile_id=is.null&enabled=eq.true&select=*&order=sort_order.asc,created_at.asc&limit=200",
-      )
+
+  /* 1) Pinta na hora com o que a visita anterior guardou. */
+  applySettings({ ...DEFAULT, ...(cacheGet("settings") || {}) });
+  let firstLoad = true;
+  const loadSettings = () =>
+    (firstLoad ? early("settings", SETTINGS_PATH) : read(SETTINGS_PATH))
+      .then((rows) => {
+        const row = rows[0] || {};
+        if (JSON.stringify(row) !== JSON.stringify(cacheGet("settings"))) {
+          cacheSet("settings", row);
+          applySettings({ ...DEFAULT, ...row });
+        }
+      })
+      .catch(() => {});
+
+  let loadContent;
+  if (!isCatalog) {
+    let signature = "";
+    const showLinks = (rows) => {
+      const next = JSON.stringify(rows);
+      if (next === signature) return;
+      signature = next;
+      renderLinks(rows);
+    };
+    const cached = cacheGet("links");
+    if (cached?.length) showLinks(cached);
+    else renderLinks([]);
+    loadContent = () =>
+      (firstLoad ? early("links", LINKS_PATH) : read(LINKS_PATH))
         .then((rows) => {
-          const publicRows = rows.filter(
-            (item) =>
-              item.enabled !== false &&
-              String(item.enabled) !== "false" &&
-              item.is_demo !== true &&
-              String(item.is_demo) !== "true",
-          );
-          renderProducts(
-            localPreview ? [...publicRows, ...FALLBACK_PRODUCTS] : publicRows,
-          );
+          cacheSet("links", rows);
+          showLinks(rows);
+        })
+        .catch(() => {
+          if (!signature) showLinks([]);
+        });
+  } else {
+    const show = (rows) => {
+      const list = localPreview ? [...rows, ...FALLBACK_PRODUCTS] : rows,
+        next = JSON.stringify(list);
+      if (next === catalogState.signature) return;
+      catalogState.signature = next;
+      catalogState.rows = list;
+      renderProducts(list);
+      openFromUrl();
+    };
+    const cached = cacheGet("products");
+    if (cached?.rows?.length) show(cached.rows);
+    else if (localPreview) show([]);
+    else showSkeleton();
+    loadContent = () =>
+      (firstLoad ? early("products", PRODUCTS_PATH) : read(PRODUCTS_PATH))
+        .then((rows) => {
+          const publicRows = publicProducts(rows);
+          cacheSet("products", { rows: publicRows, at: Date.now() });
+          show(publicRows);
+          deepLinkDone = true;
         })
         .catch((error) => {
-          renderProducts(localPreview ? FALLBACK_PRODUCTS : []);
+          if (!catalogState.signature) show([]);
           if (localPreview)
             console.info(
               "Exibindo modelos locais de demonstração:",
               error.message,
             );
         });
-  await Promise.all([settingsTask, contentTask]);
+  }
+  const refresh = () => Promise.all([loadSettings(), loadContent()]);
+  const first = refresh();
+  firstLoad = false;
+  await first;
+
+  /* 2) Mudanças feitas no painel aparecem sozinhas, sem recarregar. */
+  let lastRefresh = Date.now();
+  const refreshSoon = () => {
+    if (document.hidden || Date.now() - lastRefresh < 4000) return;
+    lastRefresh = Date.now();
+    refresh();
+  };
+  document.addEventListener("visibilitychange", refreshSoon);
+  window.addEventListener(
+    "pageshow",
+    (event) => event.persisted && refreshSoon(),
+  );
+  window.addEventListener("online", refreshSoon);
+  setInterval(refreshSoon, 45000);
 }
 setupTicker();
 setupCatalogMenu();

@@ -523,7 +523,7 @@ footer small {
 /* O fundo de marca enviado também ambienta a página de links. */
 body:not(.catalog-page) {
   background-color: var(--paper);
-  background-image: url("../assets/dellas-cover.png");
+  background-image: url("../assets/dellas-cover-v5.webp");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -801,7 +801,7 @@ body:not(.catalog-page) {
 }
 @media (max-width: 640px) {
   body:not(.catalog-page) {
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg") !important;
+    background-image: url("../assets/dellas-cover-mobile-v5.webp") !important;
   }
 }
 /* A faixa sempre contém dois trilhos iguais e cada trilho ocupa, no mínimo, a tela. */
@@ -1086,13 +1086,13 @@ body:not(.catalog-page) .site-footer .footer-bottom {
 /* Fundo móvel vertical e leve; reduz transferência e enquadra a marca em telas estreitas. */
 @media (max-width: 640px) {
   body:not(.catalog-page) {
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg");
+    background-image: url("../assets/dellas-cover-mobile-v5.webp");
     background-size: cover;
     background-position: center 42%;
     background-attachment: scroll;
   }
   .catalog-hero {
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg");
+    background-image: url("../assets/dellas-cover-mobile-v5.webp");
     background-position: center 44%;
     background-size: cover;
   }
@@ -1107,7 +1107,7 @@ body:not(.catalog-page) .site-footer .footer-bottom {
 
 @media (max-width: 640px) {
   body:not(.catalog-page) {
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg") !important;
+    background-image: url("../assets/dellas-cover-mobile-v5.webp") !important;
   }
 }
 
@@ -1124,7 +1124,7 @@ body:not(.catalog-page) .site-footer .footer-bottom {
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background: url("../assets/dellas-cover-mobile-v4.jpg") center 42% / cover
+    background: url("../assets/dellas-cover-mobile-v5.webp") center 42% / cover
       no-repeat;
   }
   .profile {
@@ -1369,7 +1369,7 @@ body:not(.catalog-page) {
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background: url("../assets/dellas-cover-mobile-v4.jpg") center top/cover
+    background: url("../assets/dellas-cover-mobile-v5.webp") center top/cover
       no-repeat;
   }
 }

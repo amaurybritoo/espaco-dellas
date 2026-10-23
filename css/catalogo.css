@@ -60,7 +60,8 @@
   padding: clamp(45px, 7vw, 100px) clamp(20px, 6vw, 95px);
   margin: 0 calc((min(100vw - 40px, 1360px) - 100vw) / 2);
   overflow: hidden;
-  background: #e6d5c2 url("../assets/dellas-cover.png") center/cover no-repeat;
+  background: #e6d5c2 url("../assets/dellas-cover-v5.webp") center/cover
+    no-repeat;
 }
 .hero-shade {
   position: absolute;
@@ -1482,7 +1483,7 @@
 }
 @media (max-width: 640px) {
   .catalog-hero {
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg");
+    background-image: url("../assets/dellas-cover-mobile-v5.webp");
     background-position: center 44%;
     background-size: cover;
   }
@@ -1506,7 +1507,7 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     padding: 29px 13px 18px;
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg") !important;
+    background-image: url("../assets/dellas-cover-mobile-v5.webp") !important;
     background-size: cover;
     background-position: center 38%;
     border-radius: 0 0 22px 22px;
@@ -1600,7 +1601,7 @@
 }
 @media (max-width: 640px) {
   .catalog-hero {
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg") !important;
+    background-image: url("../assets/dellas-cover-mobile-v5.webp") !important;
   }
   .catalog-hero .hero-shade {
     background: none !important;
@@ -1609,7 +1610,7 @@
 /* Capa vertical dedicada ao hero em telas pequenas. */
 @media (max-width: 640px) {
   .catalog-hero {
-    background-image: url("../assets/dellas-cover-mobile-v4.jpg") !important;
+    background-image: url("../assets/dellas-cover-mobile-v5.webp") !important;
     background-size: cover !important;
     background-position: center 38% !important;
   }
@@ -2792,5 +2793,196 @@ html.scroll-locked body {
 
 /* Legibilidade do texto pequeno sobre a foto (card do hero mais transparente). */
 .catalog-hero .hero-copy .eyebrow {
+  text-shadow: 0 0 10px rgba(255, 250, 241, 0.9);
+}
+
+/* ==== Revisão 22/10/2026 (2) — sem película no desktop, esqueleto, compartilhar ==== */
+.catalog-hero .hero-shade {
+  display: none !important;
+}
+.dellas-drift span {
+  will-change: transform;
+}
+
+/* Esqueleto de carregamento (aparece no lugar das peças enquanto chegam) */
+@keyframes dellas-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.is-skeleton {
+  pointer-events: none;
+}
+.is-skeleton i,
+.product-card.is-skeleton .product-art,
+.featured-slide.is-skeleton .featured-image {
+  background: linear-gradient(90deg, #eadccf 25%, #f6ece2 50%, #eadccf 75%) 0
+    0 / 200% 100%;
+  animation: dellas-shimmer 1.3s linear infinite;
+}
+.is-skeleton i {
+  display: block;
+  height: 12px;
+  margin: 12px 0;
+  border-radius: 6px;
+}
+.is-skeleton i:nth-child(1) {
+  width: 38%;
+}
+.is-skeleton i:nth-child(2) {
+  width: 82%;
+  height: 18px;
+}
+.is-skeleton i:nth-child(3) {
+  width: 58%;
+}
+.featured-slide.is-skeleton {
+  background: #fbf4ea;
+  animation: none;
+}
+.product-card.is-skeleton .product-art img,
+.product-card.is-skeleton .product-art svg {
+  display: none;
+}
+.product-card.is-skeleton .product-info {
+  padding-bottom: 22px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-skeleton i,
+  .product-card.is-skeleton .product-art,
+  .featured-slide.is-skeleton .featured-image {
+    animation: none;
+  }
+}
+
+/* Botões do popup: WhatsApp + Compartilhar */
+.product-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+.product-detail-actions .product-detail-contact {
+  flex: 1 1 190px;
+}
+.product-detail-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1.5px solid #593824;
+  border-radius: 999px;
+  background: transparent;
+  color: #593824;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.product-detail-share svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.product-detail-share:hover,
+.product-detail-share:focus-visible {
+  background: #593824;
+  color: #fff8ef;
+}
+.product-detail-share:focus-visible {
+  outline: 2px solid #b5825b;
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .product-detail-actions .product-detail-contact,
+  .product-detail-share {
+    flex: 1 1 100%;
+  }
+}
+
+/* Aviso rápido ("Link copiado") */
+.dellas-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(26px, env(safe-area-inset-bottom));
+  z-index: 100;
+  max-width: calc(100vw - 40px);
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: #3a2418;
+  color: #fff8ef;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 14px 34px rgba(58, 36, 24, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 14px);
+  transition:
+    opacity 0.25s,
+    transform 0.25s;
+}
+.dellas-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Carrossel no celular: o texto ocupa o card inteiro (sem sobra branca) */
+@media (max-width: 760px) {
+  .featured-slide {
+    grid-template-columns: 40% minmax(0, 1fr);
+    height: 236px;
+  }
+  .featured-copy {
+    justify-content: space-between;
+    gap: 0;
+    padding: 14px 14px 14px 16px;
+  }
+  .featured-copy > p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .feature-category {
+    margin-top: 6px;
+  }
+  .featured-copy h2 {
+    margin: 2px 0 6px;
+    font-size: 27px;
+    line-height: 1.04;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .feature-price {
+    margin: auto 0 0;
+  }
+  .feature-link {
+    margin-top: 10px;
+  }
+}
+
+/* Sem película: o texto do hero ganha contraste próprio para continuar legível sobre a foto. */
+.catalog-hero .hero-copy .eyebrow {
+  color: #70441f;
+  text-shadow:
+    0 0 12px rgba(255, 250, 241, 0.95),
+    0 0 3px rgba(255, 250, 241, 0.9);
+}
+.catalog-hero .hero-copy h1 em {
+  color: #a0673c;
+}
+.catalog-hero .hero-copy > p:not(.eyebrow) {
+  color: #43291a;
   text-shadow: 0 0 10px rgba(255, 250, 241, 0.9);
 }
